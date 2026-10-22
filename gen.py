@@ -1,5 +1,5 @@
 import json,hashlib,subprocess,os
-g=json.load(open('/workspace/esp2/pp/assets/www/t5/ediciones/familia/guion.json'))
+g=json.load(open('/workspace/pp221/www/t5/ediciones/familia/guion.json'))
 P={p['tipo']:p for p in g['pruebas']}
 hd=[i for i in P['laPista']['items']]
 de=P['tablero']['items']
@@ -40,6 +40,6 @@ for k,s in L.items():
   o='www/tts/%s.mp3'%k
   if os.path.exists(o): continue
   w='/tmp/ppf/wav/%s.wav'%k
-  subprocess.run(['/workspace/piperenv/bin/piper','-m','/workspace/piper/es_ES-davefx-medium.onnx','-f',w,'-q'],input=s.encode(),check=True,stderr=subprocess.DEVNULL)
+  subprocess.run(['/workspace/piperenv/bin/piper','-m','/workspace/piper/es_ES-davefx-medium.onnx','-f',w],input=s.encode(),check=True,stderr=subprocess.DEVNULL)
   subprocess.run(['ffmpeg','-v','error','-y','-i',w,'-ac','1','-b:a','40k',o],check=True); os.remove(w)
 print(len(L))

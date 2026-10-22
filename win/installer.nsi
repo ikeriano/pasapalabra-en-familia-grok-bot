@@ -1,9 +1,11 @@
 Unicode true
 SetCompressor /SOLID lzma
-Name "Pasapalabra en familia 1.0"
-OutFile "PasapalabraEnFamilia-1.0-Windows-Setup.exe"
+Name "Pasapalabra en familia 1.1"
+OutFile "PasapalabraEnFamilia-1.1-Windows-Setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\PasapalabraEnFamilia"
 RequestExecutionLevel user
+!define MUI_ICON "app.ico"
+!define MUI_UNICON "app.ico"
 !include "MUI2.nsh"
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
