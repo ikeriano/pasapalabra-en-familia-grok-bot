@@ -45,7 +45,7 @@ const logo=new THREE.Mesh(new THREE.PlaneGeometry(8,1.54),new THREE.MeshBasicMat
 // bucle: solo dibuja cuando hace falta (ahorro para Redmi A2)
 let anim=null,last=0,activo=0,limpio=false;const clk=new THREE.Clock();
 function loop(){requestAnimationFrame(loop);const now=performance.now();if(now-last<33)return;last=now;const dt=Math.min(clk.getDelta(),.1);
- const quiere=anim||activo||!PLATO;if(!quiere){if(!limpio){R.clear();limpio=true}return}limpio=false;
+ const quiere=anim||activo||!PLATO;if(!quiere){if(!limpio){R.clear();R.domElement.style.visibility='hidden';limpio=true}return}if(limpio)R.domElement.style.visibility='visible';limpio=false;
  if(fondo.visible)fondo.children.forEach(m=>{m.position.x+=m.userData.v*dt;if(m.position.x>16)m.position.x=-16});
  if(anim)anim(dt);R.autoClear=true;R.render(S,C);if(roscoG.visible){R.autoClear=false;R.render(S2,C2)}}
 C.position.set(0,0,10);loop();
@@ -173,21 +173,31 @@ function rondaDE(e,p){return new Promise(async ok=>{const c=G.eq[e].c,P=D.dep[p]
   else{snd('whereAre_fail');flip(i,true);tl[i].classList.add('x');setTimeout(()=>{tl[i].classList.remove('x');for(let q=0;q<9;q++)flip(q,false);ab=new Set();k=0;quien=jug(e);preg()},900)}});preg()})}
 // ---------- ESTO ME SUENA (gramola con 5 pistas; pulsadores azul y rojo; se ganan los segundos de las pistas que quedan) ----------
 const JCOL=['#2a7bff','#e8352f','#2fc23f','#ffb31a','#b04fff'];
-async function estoMeSuena(){await cortinilla('suena');await aviso('<h2>Esto me suena</h2><p>Un miembro de cada familia frente a frente. La gramola da hasta <b>5 pistas</b> de una canción.</p><p>Elegís un color de la gramola y os doy el año de la canción. Esperad a que suene la pista completa antes de pulsar: <b>si pulsáis antes, es fallo y hay rebote</b> para la otra familia. Las pistas son de texto (el juego no reproduce canciones).</p>');
- await say(D.fr.suena[0]);
+// Reglas reales (vídeo 12:52–23:15): parejas frente a frente; se elige un color de la gramola (5 s, luego 4, 3…) y suena la canción
+// (clip original cortado del audio del programa). Christian da el año. Solo se pulsa cuando termina de sonar entera: si se pulsa antes es fallo y rebote.
+async function estoMeSuena(){await cortinilla('suena');await aviso('<h2>Esto me suena</h2><p>Juega una pareja: uno de cada familia. Se elige un <b>color de la gramola</b> y suena una canción (los clips son los del programa original). Os doy el <b>año</b> de la canción.</p><p>Hay que <b>esperar a que termine de sonar entera</b>. Si pulsáis antes, es fallo y hay <b>rebote</b> para la otra familia.</p><p>El primer color vale <b>5 s</b>, el siguiente 4 s, luego 3 s…</p>');
+ await say(D.fr.suena[0]);let quienElige=0;
  for(let s=0;s<D.suena.length;s++){const so=D.suena[s],J=[jug(0)||'Naranja',jug(1)||'Azul'];
-  await new Promise(async ok=>{let p=0,fin=false,bloq=-1,quien=-1;
-   UI.innerHTML=`<div class="ems"><div class="jb"><div class="jbt"></div><div class="jbb">${JCOL.map((c,i)=>`<i style="background:${c}" id="jb${i}"></i>`).join('')}</div><div class="jbg"></div></div>
-   <div class="def card" id="q">Canción ${s+1} de ${D.suena.length}</div>
+  await new Promise(async ok=>{let ci=0,fin=false,sonando=false,quien=-1,bloq=[false,false],au=null;const usados=new Set();
+   UI.innerHTML=`<div class="ems"><div class="jb"><div class="jbt"></div><div class="jbb">${JCOL.map((c,i)=>`<i style="background:${c}" id="jb${i}" data-c="${i}"></i>`).join('')}</div><div class="jbg"></div></div>
+   <div class="def card" id="q">Canción ${s+1} de ${D.suena.length}${so.y?` · Año <b>${so.y}</b>`:''}</div>
    <div class="duel"><div class="pl B"><span class="pul bz" id="b1" style="--c:#1f6bff"></span><b>${J[1]}</b><span class="sq bgB">${G.eq[1].s}</span></div><span class="sq mor" id="np">5</span><div class="pl O"><span class="sq bgO">${G.eq[0].s}</span><b>${J[0]}</b><span class="pul bz" id="b0" style="--c:#e8352f"></span></div></div>
    <div id="jz" style="display:none"><input id="r" autocomplete="off" placeholder="título"><button class="btn g s" id="ok">Comprobar</button><button class="btn s" id="si">✔</button><button class="btn r s" id="no">✘</button></div></div>`;
-   const acabar=m=>{if(fin)return;fin=true;callar();$('#q').innerHTML=(m||'')+` La canción era: <b>${so.t}</b>`;setTimeout(ok,2600)};
-   const pista=async()=>{if(fin)return;if(p>=5)return acabar('¡Nadie la ha acertado!');document.getElementById('jb'+p).classList.add('on');$('#np').textContent=5-p;$('#q').textContent='Pista '+(p+1)+': '+so.p[p];snd('menu_press');const mi=p;await say('su'+s+'_'+p);if(!fin&&quien<0&&mi===p){await wait(1800);if(!fin&&quien<0&&mi===p){p++;pista()}}};
-   const buzz=e=>{if(fin||quien>=0||bloq===e)return;quien=e;callar();snd('donut_pass');document.getElementById('b'+e).classList.add('on');camE(e);$('#jz').style.display='block';$('#r').value='';$('#r').focus()};
-   const res=v=>{if(quien<0)return;const e=quien;$('#jz').style.display='none';document.getElementById('b'+e).classList.remove('on');
-    if(v){const g=5-p;snd('donut_hit');G.eq[e].s+=g;acabar(`¡${J[e]} la acierta! +${g} segundos.`)}else{snd('donut_fail');quien=-1;if(bloq>=0){p++;bloq=-1;pista()}else{bloq=e;$('#q').textContent='¡Fallo! Puede responder la otra familia…'}}};
+   const val=()=>Math.max(1,5-ci);
+   const acabar=m=>{if(fin)return;fin=true;if(au)au.pause();callar();$('#q').innerHTML=(m||'')+` La canción era: <b>${so.t}</b>${so.a?' ('+so.a+')':''}${so.y?' · '+so.y:''}`;setTimeout(ok,3200)};
+   const elegir=()=>{if(fin)return;if(ci>=so.c.length)return acabar('¡Nadie la ha acertado!');bloq=[false,false];quien=-1;$('#np').textContent=val();
+    const e=quienElige;$('#q').innerHTML=`${J[e]} (${G.eq[e].n}): elige un color por <b>${val()} segundos</b>${so.y?` · Año ${so.y}`:''}`;
+    document.querySelectorAll('.jbb i').forEach(el=>el.onclick=()=>{const c=+el.dataset.c;if(usados.has(c)||sonando||fin)return;usados.add(c);el.classList.add('on');quienElige=1-quienElige;tocar()})};
+   const tocar=async()=>{sonando=true;$('#q').innerHTML=`♪ Suena la gramola… <b>esperad a que acabe</b> ♪`;snd('menu_press');
+    await new Promise(r=>{au=new Audio('ems/'+so.c[ci]+'.mp3');au.volume=MUTE?0:1;let h=setTimeout(r,14000);au.onended=()=>{clearTimeout(h);r()};au.onerror=()=>{clearTimeout(h);setTimeout(r,8000)};au.play().catch(()=>{})});
+    sonando=false;if(fin)return;if(bloq[0]&&bloq[1]){ci++;return elegir()}$('#q').innerHTML='¡Ya! <b>Pulsad</b> si sabéis el título';snd('donut_pass')};
+   const buzz=e=>{if(fin||quien>=0||bloq[e])return;if(sonando){snd('donut_fail');bloq[e]=true;$('#q').innerHTML=`¡${J[e]} ha pulsado antes de que acabe la canción! Fallo y <b>rebote</b>.`;return}
+    quien=e;callar();document.getElementById('b'+e).classList.add('on');camE(e);$('#jz').style.display='block';$('#r').value='';$('#r').focus()};
+   const res=v=>{if(quien<0)return;const e=quien;quien=-1;$('#jz').style.display='none';document.getElementById('b'+e).classList.remove('on');
+    if(v){const g=val();snd('donut_hit');G.eq[e].s+=g;acabar(`¡${J[e]} la acierta! +${g} segundos para ${G.eq[e].n}.`)}
+    else{snd('donut_fail');bloq[e]=true;if(bloq[1-e]){ci++;elegir()}else $('#q').innerHTML=`Fallo. <b>Rebote</b> para ${J[1-e]}…`}};
    $('#b0').onclick=()=>buzz(0);$('#b1').onclick=()=>buzz(1);$('#ok').onclick=()=>res(so.ok.includes(norm($('#r').value)));$('#si').onclick=()=>res(true);$('#no').onclick=()=>res(false);$('#r').onkeydown=ev=>{if(ev.key==='Enter')$('#ok').click()};
-   setTimeout(pista,600)})}
+   await say('suy'+s);elegir()})}
  await marcador()}
 // ---------- PALABRAS CRUZADAS (definición; respuesta partida en dos columnas desordenadas) ----------
 async function cruzadas(){await cortinilla('cruz');await aviso('<h2>Palabras cruzadas</h2><p>Escucháis una definición. La respuesta está partida en dos: el principio en la columna de la izquierda y el final en la de la derecha, desordenados.</p><p>Tocad las dos mitades. 60 segundos · +5 s por acierto.</p>');await say(D.fr.cruz[0]);
@@ -203,28 +213,35 @@ async function cruzadas(){await cortinilla('cruz');await aviso('<h2>Palabras cru
     document.querySelector(`[data-a="${k}"]`).classList.add('x');document.querySelector(`[data-b="${k}"]`).classList.add('x');k++;setTimeout(preg,okk?500:1500)});preg()})}
  await marcador()}
 // ---------- ¿TÚ QUÉ PINTAS? ----------
-async function pintas(){await cortinilla('pinta');await say(D.fr.pinta[0]);
- for(const e of [0,1]){const dib=jug(e)||'Dibujante';camE(e);await aviso(`<h2 class="${G.eq[e].c}">${G.eq[e].n}</h2><p>Dibuja: <b>${dib}</b>. Los demás adivinan. Tema: <b>${D.pinta.tema}</b>.</p><p>45 segundos · +5 s por acierto.</p>`);
-  await new Promise(ok=>{const c=G.eq[e].c,ws=[...D.pinta.w].sort(()=>Math.random()-.5);let i=0,fin=false;
-  UI.innerHTML=`<div class="card rw"><canvas id="pad" width="300" height="200"></canvas><div><div class="tema bg${c}">${D.pinta.tema.toUpperCase()}</div><div class="sc" style="margin:6px"><div class="bg${c}" id="n" style="font-size:30px">45</div><div class="bg${c}" id="ac" style="font-size:30px">0</div></div><div>Palabra (solo quien dibuja, toca para ver): <b id="w" style="filter:blur(7px)" onclick="this.style.filter=''"></b></div><button class="btn g s" id="si">✔ Acertado</button><button class="btn s" id="pa">Pasapalabra</button></div></div>`;
-  const pad=$('#pad'),g=pad.getContext('2d');g.lineWidth=4;g.lineCap='round';g.strokeStyle='#123';let d=false,ac=0;const xy=ev=>{const r=pad.getBoundingClientRect();return[(ev.clientX-r.left)*300/r.width,(ev.clientY-r.top)*200/r.height]};
-  pad.onpointerdown=ev=>{d=true;g.beginPath();g.moveTo(...xy(ev))};pad.onpointermove=ev=>{if(d){g.lineTo(...xy(ev));g.stroke()}};onpointerup=()=>d=false;
-  const nx=()=>{if(i>=ws.length)return end();g.clearRect(0,0,300,200);$('#w').textContent=ws[i];$('#w').style.filter='blur(7px)'};
-  const rl=reloj(45,$('#n'),()=>end());const end=()=>{if(fin)return;fin=true;rl.stop();setTimeout(ok,1000)};
-  $('#si').onclick=()=>{snd('donut_hit');G.eq[e].s+=5;$('#ac').textContent=++ac;i++;nx()};$('#pa').onclick=()=>{snd('donut_pass');ws.push(ws[i]);i++;nx()};nx()})}await marcador()}
+// Reglas reales (vídeo 31:41–32:10): la familia elige tema; uno dibuja (puede señalar o hacer gestos); 5 palabras, frases o expresiones;
+// 30 s por cada una pero el tiempo es compartido (150 s) y se administra como se quiera; 3 s por acierto.
+async function pintas(){await cortinilla('pinta');await aviso('<h2>¿Tú qué pintas?</h2><p>Elegís un <b>tema</b>. Uno de la familia dibuja y <b>puede señalar o hacer gestos</b>; los demás adivinan.</p><p><b>5</b> palabras, frases o expresiones. 30 segundos por cada una, pero el tiempo es <b>compartido</b>: tenéis <b>150 segundos</b> y los administráis como queráis.</p><p><b>3 segundos</b> por acierto.</p>');await say(D.fr.pinta[0]);
+ const libres=[0,1];
+ for(const e of [0,1]){camE(e);let ti=libres[0];if(libres.length>1)ti=await new Promise(ok=>{UI.innerHTML=`<div class="card"><h2 class="${G.eq[e].c}">${G.eq[e].n}</h2><p>Elegid tema:</p>${libres.map(i=>`<button class="btn s" data-p="${i}">${D.pinta[i].t}</button>`).join(' ')}</div>`;document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>ok(+b.dataset.p))});
+  libres.splice(libres.indexOf(ti),1);const T=D.pinta[ti];const dib=jug(e)||'Dibujante';
+  await aviso(`<h2 class="${G.eq[e].c}">${G.eq[e].n}</h2><p>Tema: <b>${T.t}</b> · Dibuja: <b>${dib}</b></p><p>5 tarjetas · 150 segundos compartidos · +3 s por acierto</p>`);
+  await new Promise(ok=>{const c=G.eq[e].c,ws=[...T.w];let i=0,fin=false,ac=0;
+  UI.innerHTML=`<div class="card rw"><canvas id="pad" width="300" height="200"></canvas><div><div class="tema bg${c}">${T.t.toUpperCase()}</div><div class="sc" style="margin:6px"><div class="bg${c}" id="n" style="font-size:30px">150</div><div class="bg${c}" id="ac" style="font-size:30px">0</div></div><div id="tj" style="margin:4px"></div><div>Tarjeta (solo quien dibuja, toca para ver): <b id="w" style="filter:blur(7px)" onclick="this.style.filter=''"></b></div><button class="btn g s" id="si">✔ Acertado</button><button class="btn s" id="pa">Siguiente tarjeta ▶</button><button class="btn s" id="bo">Borrar</button></div></div>`;
+  const pad=$('#pad'),g=pad.getContext('2d');g.lineWidth=4;g.lineCap='round';g.strokeStyle='#123';let d=false;const xy=ev=>{const r=pad.getBoundingClientRect();return[(ev.clientX-r.left)*300/r.width,(ev.clientY-r.top)*200/r.height]};
+  pad.onpointerdown=ev=>{d=true;g.beginPath();g.moveTo(...xy(ev))};pad.onpointermove=ev=>{if(d){g.lineTo(...xy(ev));g.stroke()}};onpointerup=()=>d=false;$('#bo').onclick=()=>g.clearRect(0,0,300,200);
+  const hech=new Set();const tj=()=>{$('#tj').innerHTML=T.w.map((w,k)=>`<span class="sq ${hech.has(k)?'bg'+c:''}" style="display:inline-block;min-width:22px;margin:1px;${k===i?'outline:2px solid #fff':''}">${k+1}</span>`).join('')};
+  const nx=()=>{if(hech.size>=ws.length)return end();let n=0;while(hech.has(i)&&n++<10)i=(i+1)%ws.length;g.clearRect(0,0,300,200);$('#w').textContent=ws[i];$('#w').style.filter='blur(7px)';tj()};
+  const rl=reloj(150,$('#n'),()=>end());const end=()=>{if(fin)return;fin=true;rl.stop();setTimeout(ok,1200)};
+  $('#si').onclick=()=>{if(fin)return;snd('donut_hit');G.eq[e].s+=3;hech.add(i);$('#ac').textContent=++ac;i=(i+1)%ws.length;nx()};$('#pa').onclick=()=>{if(fin)return;snd('donut_pass');i=(i+1)%ws.length;nx()};nx()})}await marcador()}
 // ---------- LA RISTRA (mismo grafismo de columna que en el vídeo: los pueblos se apilan) ----------
 // Reglas reales (vídeo, 38:33–39:33): primer miembro dice la 1.ª palabra; el siguiente repite la 1.ª y añade la 2.ª… en orden.
 // Si se olvida o salta el orden, el turno pasa al compañero, que tiene que recordarlas todas para seguir. 75 s por equipo.
 // Cuenta el máximo alcanzado: la familia con más palabras gana 10 s; completar el panel, 20 s.
 async function ristra(){await cortinilla('ristra');await aviso('<h2>La ristra</h2><p>Os doy una ristra de palabras. El primero repite la primera; el siguiente, la primera y la segunda… <b>siempre en orden</b>.</p><p>Si alguien se olvida o se salta el orden, el turno pasa al compañero, que tiene que <b>repetirlas todas</b> para seguir.</p><p>75 segundos. La familia que más palabras recuerde gana <b>10 s</b>; si completa el panel, <b>20 s</b>.</p>');await say(D.fr.ristra[0]);
- const mitad=Math.ceil(D.ristra.length/2);const max=[0,0],tot=[0,0];
- for(const e of [0,1]){const ws=D.ristra.map((w,i)=>[w,i]).slice(e?mitad:0,e?D.ristra.length:mitad);tot[e]=ws.length;camE(e);
-  await aviso(`<h2 class="${G.eq[e].c}">${G.eq[e].n}</h2><p>Pueblos de España · ${ws.length} palabras · 75 segundos</p>`);
+ const max=[0,0],tot=[0,0],libres=[0,1];
+ for(const e of [0,1]){camE(e);let ti=libres[0];if(libres.length>1)ti=await new Promise(ok=>{UI.innerHTML=`<div class="card"><h2 class="${G.eq[e].c}">${G.eq[e].n}</h2><p>Elegid tema:</p>${libres.map(i=>`<button class="btn s" data-p="${i}">${D.ristra[i].t}</button>`).join(' ')}</div>`;document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>ok(+b.dataset.p))});
+  libres.splice(libres.indexOf(ti),1);const ws=D.ristra[ti].w.map((w,i)=>[w,i]);tot[e]=ws.length;const RK=ti;
+  await aviso(`<h2 class="${G.eq[e].c}">${G.eq[e].n}</h2><p>${D.ristra[ti].t} · ${ws.length} palabras · 75 segundos</p>`);
   await new Promise(ok=>{let n=0,fin=false,nuevo=true,j=jug(e)||'';UI.innerHTML=columna(e,ws.length,75);
    $('#ctl').innerHTML='<button class="btn g" id="si">✔ La ha dicho bien</button><button class="btn r" id="no">✘ Fallo</button>';
    const rl=reloj(75,$('#n'),()=>end());const end=()=>{if(fin)return;fin=true;rl.stop();callar();setTimeout(ok,1400)};
    const sig=async()=>{if(n>=ws.length)return end();$('#who').textContent='Repite: '+j;
-    if(nuevo){document.querySelectorAll('.dot')[n].classList.add('off');$('#q').innerHTML=`Nueva palabra: <b class="ini">${ws[n][0].toUpperCase()}</b> · ${j}, repite la ristra desde el principio`;await say('rw'+ws[n][1])}
+    if(nuevo){document.querySelectorAll('.dot')[n].classList.add('off');$('#q').innerHTML=`Nueva palabra: <b class="ini">${ws[n][0].toUpperCase()}</b> · ${j}, repite la ristra desde el principio`;await say('rx'+RK+'_'+ws[n][1])}
     else $('#q').innerHTML=`${j}: repite toda la ristra hasta <b class="ini">${ws[n][0].toUpperCase()}</b>`};
    $('#si').onclick=()=>{if(fin)return;snd('donut_hit');pill(e,ws[n][0]);n++;max[e]=Math.max(max[e],n);nuevo=true;j=jug(e)||'';sig()};
    $('#no').onclick=()=>{if(fin)return;snd('donut_fail');nuevo=false;j=jug(e)||'';sig()};sig()})}
@@ -239,9 +256,9 @@ function roscoPos(){const r=$('#ro');if(!r)return;const b=r.getBoundingClientRec
 const COLR={0:0x1f7bff,1:0x2fc23f,2:0xe8352f};
 function pintaR(s){RB.forEach((m,i)=>{const cur=i===s.pos;m.material.color.setHex(cur?0xff9a1c:COLR[s.est[i]]);m.material.emissive.setHex(cur?0x803a00:s.est[i]===1?0x0a5a10:s.est[i]===2?0x600000:0x0a2a80);m.userData.cur=cur})}
 async function rosco(){await marcador('Antes del Rosco');await cortinilla('rosco');
- await aviso('<h2>El Rosco Dúo</h2><p>Juegan dos de cada familia: uno responde de la <b>A a la N</b> y el otro de la <b>Ñ a la Z</b>.</p><p>Tiempo: 85 segundos + los acumulados. Si falláis o decís «Pasapalabra», pasa el turno a la otra familia.</p><p>Bote: 6.000 €</p>');
+ await aviso('<h2>El Rosco Dúo</h2><p>Juegan dos de cada familia: uno responde de la <b>A a la N</b> y el otro de la <b>Ñ a la Z</b>.</p><p>Empieza la familia con más segundos. El tiempo de cada familia son <b>los segundos acumulados</b> en las pruebas. Si acertáis, seguís; si decís «Pasapalabra», turno para la otra familia; si falláis, paramos, corregimos y pasa el turno.</p><p>Bote: 6.000 €</p>');
  const ms=e=>{const m=G.eq[e].m.filter(Boolean);return[m[0]||'Jugador 1',m[1]||m[0]||'Jugador 2']};
- const st=[0,1].map(e=>({t:85+G.eq[e].s,est:D.ro.map(()=>0),pos:0,ac:0,fa:0,fin:false}));const iniN=D.ro.findIndex(x=>x.l==='Ñ');
+ const st=[0,1].map(e=>({t:Math.max(G.eq[e].s,30),est:D.ro.map(()=>0),pos:0,ac:0,fa:0,fin:false}));const iniN=D.ro.findIndex(x=>x.l==='Ñ');
  let e=G.eq[0].s>=G.eq[1].s?0:1;await say(D.fr.ro[0]);
  while(!(st[0].fin&&st[1].fin)){if(st[e].fin){e=1-e;continue}camE(e);await turnoRosco(e,st[e],ms(e),iniN);e=1-e}
  roscoG.visible=false;activo=0;
