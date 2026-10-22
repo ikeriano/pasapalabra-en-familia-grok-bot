@@ -1,0 +1,6 @@
+keystore/
+node_modules
+*.apk
+*.idsig
+*.exe
+win/dist
