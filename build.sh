@@ -12,7 +12,7 @@ for i in src.infolist():o.writestr(i,src.read(i.filename))
 o.write(B+'/classes.dex','classes.dex',zipfile.ZIP_DEFLATED)
 for r,d,f in os.walk('www'):
   for n in f:
-    p=os.path.join(r,n);a='assets/'+os.path.relpath(p,'www');o.write(p,a,zipfile.ZIP_STORED if n.endswith(('.mp4','.mp3','.png')) else zipfile.ZIP_DEFLATED)
+    p=os.path.join(r,n);a='assets/www/'+os.path.relpath(p,'www');o.write(p,a,zipfile.ZIP_STORED if n.endswith(('.mp4','.mp3','.png')) else zipfile.ZIP_DEFLATED)
 o.close()
 P
 $BT/zipalign -f -p 4 $B/u.apk $B/a.apk
@@ -25,7 +25,7 @@ echo '{"nombre":"Pasapalabra en familia","port":47851}' > $W/resources/app/juego
 cp -r www $W/resources/app/www
 python3 -c "from PIL import Image;Image.open('www/icon.png').convert('RGBA').resize((256,256)).save('win/app.ico',sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])"
 mv $W/electron.exe "$W/Pasapalabra en familia.exe"
-NODE_PATH=/tmp/ppf12/rs/node_modules node -e "
+NODE_PATH=/tmp/ppf13/rs/node_modules node -e "
 const R=require('resedit'),fs=require('fs');const f='$W/Pasapalabra en familia.exe';const exe=R.NtExecutable.from(fs.readFileSync(f));const res=R.NtExecutableResource.from(exe);
 const ico=R.Data.IconFile.from(fs.readFileSync('win/app.ico'));R.Resource.IconGroupEntry.replaceIconsForResource(res.entries,1,1033,ico.icons.map(i=>i.data));
 const vi=R.Resource.VersionInfo.fromEntries(res.entries)[0];vi.setStringValues({lang:1033,codepage:1200},{ProductName:'Pasapalabra en familia',FileDescription:'Pasapalabra en familia',CompanyName:'Ikeriano',OriginalFilename:'Pasapalabra en familia.exe'});
