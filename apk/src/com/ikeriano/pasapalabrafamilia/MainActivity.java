@@ -20,7 +20,7 @@ public class MainActivity extends Activity {
     hide();w.loadUrl("https://appassets.local/index.html");}
   void hide(){getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
   @Override public void onWindowFocusChanged(boolean f){super.onWindowFocusChanged(f);if(f)hide();}
-  @Override public void onBackPressed(){if(w.canGoBack())w.goBack();else super.onBackPressed();}
+  @Override public void onBackPressed(){w.evaluateJavascript("window.__ppfAtras?String(window.__ppfAtras()):'false'",r->{if(!"\"true\"".equals(r)){if(w.canGoBack())w.goBack();else finish();}});}
   @Override protected void onPause(){super.onPause();w.onPause();}
   @Override protected void onResume(){super.onResume();w.onResume();}
 }
